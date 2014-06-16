@@ -1,6 +1,7 @@
 from mock import MagicMock, patch
 from jumpgate.compute.drivers.sl.servers import (ServerActionV2,
                                                  SoftLayerAPIError,
+                                                 ServersDetailV2,
                                                  )
 import unittest
 
@@ -136,3 +137,99 @@ class TestServersServerActionV2(unittest.TestCase):
 
     def tearDown(self):
         self.req, self.resp, self.vg_clientMock = None, None, None
+
+
+class TestServersServersDetailV2(unittest.TestCase):
+
+    def setUp(self):
+        self.req, self.resp = MagicMock(), MagicMock()
+        self.app = MagicMock()
+        self.instance = ServersDetailV2(self.app)
+
+    def test_init(self):
+        self.assertEquals(self.app, self.instance.app)
+
+    @patch('jumpgate.compute.drivers.sl.servers.CCIManager.list_instances')
+    def test_on_get(self, mockListInstance):
+        href = u'http://localhost:5000/compute/v2/333582/servers/4846014'
+        dict = {'status': 'ACTIVE',
+                'updated': '2014-05-23T10:58:29-05:00',
+                'hostId': 4846014,
+                'user_id': 206942,
+                'addresses': {
+                    'public': [{
+                        'version': 4,
+                        'addr': '23.246.195.197',
+                        'OS-EXT-IPS:type': 'fixed'}],
+                    'private': [{
+                        'version': 4,
+                        'addr': '10.107.38.132',
+                        'OS-EXT-IPS:type': 'fixed'}]},
+                'links': [{
+                    'href': href,
+                    'rel': 'self'}],
+                'created': '2014-05-23T10:57:07-05:00',
+                'tenant_id': 333582,
+                'image_name': '',
+                'OS-EXT-STS:power_state': 1,
+                'accessIPv4': '',
+                'accessIPv6': '',
+                'OS-EXT-STS:vm_state': 'ACTIVE',
+                'OS-EXT-STS:task_state': None,
+                'flavor': {
+                    'id': '1',
+                    'links': [{
+                        'href': 'http://localhost:5000/compute/v2/flavors/1',
+                        'rel': 'bookmark'}]},
+                'OS-EXT-AZ:availability_zone': 154820,
+                'id': '4846014',
+                'security_groups': [{
+                    'name': 'default'}],
+                'name': 'minwoo-metis',
+                }
+        status = {'keyName': 'ACTIVE', 'name': 'Active'}
+        pwrState = {'keyName': 'RUNNING', 'name': 'Running'}
+        sshKeys = []
+        dataCenter = {'id': 154820, 'name': 'dal06', 'longName': 'Dallas 6'}
+        orderItem = {'itemId': 858,
+                     'setupFee': '0',
+                     'promoCodeId': '',
+                     'oneTimeFeeTaxRate': '.066',
+                     'description': '2 x 2.0 GHz Cores',
+                     'laborFee': '0',
+                     'oneTimeFee': '0',
+                     'itemPriceId': '1641',
+                     'setupFeeTaxRate': '.066',
+                     'order': {
+                         'userRecordId': 206942,
+                         'privateCloudOrderFlag': False},
+                     'laborFeeTaxRate': '.066',
+                     'categoryCode': 'guest_core',
+                     'setupFeeDeferralMonths': 12,
+                     'parentId': '',
+                     'recurringFee': '0',
+                     'id': 34750548,
+                     'quantity': '',
+                     }
+        billingItem = {'modifyDate': '2014-06-05T08:37:01-05:00',
+                       'resourceTableId': 4846014,
+                       'hostName': 'minwoo-metis',
+                       'recurringMonths': 1,
+                       'orderItem': orderItem,
+                       }
+
+        mockListInstance.return_value = {'billingItem': billingItem,
+                                         'datacenter': dataCenter,
+                                         'powerState': pwrState,
+                                         'sshKeys': sshKeys,
+                                         'status': status,
+                                         'accountId': 'foobar',
+                                         'id': '1234',
+                                         'createDate': 'foobar',
+                                         'hostname': 'foobar',
+                                         'modifyDate': 'foobar'
+                                         }
+        self.instance.on_get(self.req, self.resp)
+        self.assertEquals(set(self.resp.body['servers'][0].keys()),
+                          set(dict.keys()))
+        self.assertEquals(self.resp.status, 200)
