@@ -4,7 +4,7 @@ if sys.version_info < (3, 0):
 else:
     import http.client as HTTP
 import logging
-import six
+import uuid
 
 from jumpgate.common.error_handling import bad_request, volume_fault
 
@@ -26,6 +26,9 @@ VIRTUAL_DISK_IMAGE_TYPE = {
     'SWAP': 246
 }
 
+# openstack is use uuid.uuid4() to generate UUID.
+OPENSTACK_VOLUME_UUID_LEN = len(str(uuid.uuid4()))
+
 
 class VolumesV2(object):
     """ This code has been deprecated. It will be removed once
@@ -38,30 +41,17 @@ class VolumesV2(object):
         resp.body = {'volume': {}}
 
 
-class VolumesDetailV1(object):
-    """ class VolumesDetailV1 retrieves the SoftLayer portable
-    storage devices(Virtual_Disk_Image) and list/show it via
-    Openstack Cinder API.
-
-    It supports two cinder APIs:
-    1. list -- list all the portable storage devices. The swap
-        disk is not included.
-    2. show -- show the details of particular SoftLayer portable
-        storage device.
+class VolumeV1(object):
+    """ class VolumeV1 supports the following cinder volume endpoints:
+    GET /v1/{tenant_id}/volumes/{volume_id}    -- Shows a specified volume
+    DELETE /v1/{tenant_id}/volumes/{volume_id} -- Delete a specified volume
     """
 
     def on_get(self, req, resp, tenant_id, volume_id):
 
         client = req.env['sl_client']
 
-        if (volume_id and
-            isinstance(volume_id, six.string_types) and
-                volume_id == "detail"):
-            # list volumes API:
-            # /v1/{tenant_id}/volumes/detail
-            self._list_volumes(tenant_id, client, req, resp)
-
-        elif volume_id and isinstance(volume_id, six.string_types):
+        if volume_id and len(volume_id) <= OPENSTACK_VOLUME_UUID_LEN:
             # show volume details by volume id
             # /v1/{tenant_id}/volumes/{volume_id}
             self._show_volume(tenant_id, volume_id, client, req, resp)
@@ -77,10 +67,6 @@ class VolumesDetailV1(object):
         :param resp: Http Response body
         :param return: Http status
         """
-        try:
-            volume_id = int(volume_id)
-        except Exception:
-            return bad_request(resp, message="Malformed request body")
 
         vol = client['Virtual_Disk_Image']
         volinfo = None
@@ -96,6 +82,21 @@ class VolumesDetailV1(object):
                                    client,
                                    showDetails=True)}
 
+
+class VolumesV1(object):
+    """ class VolumesV1 supports the following cinder volume endpoints:
+    POST /v1/{tenant_id}/volumes    -- create volume
+    GET /v1/{tenant_id}/volumes     -- Lists simple volume entities
+    GET /v1/{tenant_id}/volumes/detail -- Lists details for volume entities
+    """
+
+    def on_get(self, req, resp, tenant_id):
+
+        client = req.env['sl_client']
+
+        # list volumes API:
+        # /v1/{tenant_id}/volumes/detail
+        self._list_volumes(tenant_id, client, req, resp)
 
     def _list_volumes(self, tenant_id, client, req, resp):
         """ Retrieve all the SoftLayer portable storage devices of
@@ -129,10 +130,6 @@ class VolumesDetailV1(object):
 
         except Exception as e:
             return volume_fault(resp, e.faultString)
-
-
-    def on_post(self, req, resp, tenant_id):
-        resp.body = {'volume': {}}
 
 
 def format_volume(tenant_id, volume, client, showDetails=False, version=1):
