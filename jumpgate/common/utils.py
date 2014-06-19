@@ -7,6 +7,23 @@ LOG = logging.getLogger(__name__)
 _driver_cache = {}
 
 
+class Singleton(type):
+    """class Singleton
+
+    Example class use:
+        class SomeSingleton(object):
+            __metaclass__ = Singleton
+            continue building class as usual
+    """
+    _instances = {}
+
+    def __call__(cls, *args, **kwargs):
+        if cls not in cls._instances:
+            cls._instances[cls] = super(Singleton, cls).__call__(*args,
+                                                                 **kwargs)
+        return cls._instances[cls]
+
+
 def lookup(dic, key, *keys):
     if keys:
         return lookup(dic.get(key, {}), *keys)
