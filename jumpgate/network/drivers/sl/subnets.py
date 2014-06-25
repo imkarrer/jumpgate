@@ -1,6 +1,6 @@
-from jumpgate.common.utils import get_usable_ip
 from jumpgate.common.error_handling import bad_request
 from operator import itemgetter
+from ipaddress import ip_network
 
 SUBNET_MASK = \
     'id, cidr, netmask, networkVlanId, networkIdentifier, gateway, version'
@@ -24,7 +24,7 @@ class SubnetV2(object):
         subnet = client['Network_Subnet'].getObject(id=subnet_id,
                                                     mask=SUBNET_MASK)
         resp.body = {'subnet': format_subnetwork(subnet, tenant_id)}
-        resp.status = 202
+        resp.status = 200
 
 
 class SubnetsV2(object):
@@ -42,25 +42,26 @@ class SubnetsV2(object):
         """
         client = req.env['sl_client']
         tenant_id = req.env['auth']['tenant_id']
-        subnets = client['Account'].getSubnets(mask=SUBNET_MASK)
-        sl_name = req.get_param('name')
-        if sl_name:
+        if req.get_param('name'):
             # Neutron is not using the proper endpoint to do subnet-show.
             # It is handled here as a work around.
-            subnet_matched = next((subnet for subnet in subnets if
-                                   str(subnet.get('id')) == sl_name), None)
+            _filter = {
+            'subnets': {'id': {'operation': int(req.get_param('name'))}}}
+            subnet_matched = client['Account'].getSubnets(filter=_filter)
             if subnet_matched:
                 resp.body = {
-                    'subnets': [{'id': str(subnet_matched.get('id'))}]
+                    'subnets': [{'id': str(subnet_matched[0]['id'])}]
                 }
             else:
                 resp.body = {'subnets': []}
+
         else:
+            subnets = client['Account'].getSubnets(mask=SUBNET_MASK)
             resp.body = {
                 'subnets': [format_subnetwork(subnet, tenant_id) for subnet in
                             sorted(subnets, key=itemgetter('id'))]
             }
-        resp.status = 202
+        resp.status = 200
 
 
 def format_subnetwork(subnet, tenant_id):
@@ -70,8 +71,8 @@ def format_subnetwork(subnet, tenant_id):
 
     if subnet['version'] == 4:
         # ip4 support
-        (start, end) = get_usable_ip(str(subnet['gateway']), cidr)
-        allocation_pools.append({"start": start, "end": end})
+        allocation_pools.append({"start": str(ip_network(cidr)[0] + 2),
+                                 "end": str(ip_network(cidr)[-1] - 1)})
     return {
         "name": '',
         "tenant_id": tenant_id,
