@@ -1,9 +1,11 @@
-from mock import MagicMock, patch
-from jumpgate.compute.drivers.sl.servers import (ServerActionV2,
-                                                 SoftLayerAPIError,
-                                                 ServersDetailV2,
-                                                 )
 import unittest
+
+from mock import MagicMock, patch
+import SoftLayer
+
+from jumpgate.compute.drivers.sl.servers import (
+	ServerActionV2, ServersDetailV2)
+
 
 TENANT_ID = 333333
 INSTANCE_ID = 7890782
@@ -27,8 +29,8 @@ class TestServersServerActionV2(unittest.TestCase):
         instance = ServerActionV2(app=None)
         instance.on_post(self.req, self.resp, tenant_id, instance_id)
 
-    @patch('jumpgate.compute.drivers.sl.servers.CCIManager')
-    @patch('jumpgate.compute.drivers.sl.servers.CCIManager.get_instance')
+    @patch('SoftLayer.CCIManager')
+    @patch('SoftLayer.CCIManager.get_instance')
     @patch('json.loads')
     def test_on_post_create(self, bodyMock, cciGetInstanceMock,
                             cciManagerMock):
@@ -40,15 +42,15 @@ class TestServersServerActionV2(unittest.TestCase):
         instance.on_post(self.req, self.resp, TENANT_ID, INSTANCE_ID)
         self.assertEquals(self.resp.status, 202)
 
-    @patch('jumpgate.compute.drivers.sl.servers.CCIManager')
+    @patch('SoftLayer.CCIManager')
     @patch('json.loads')
     def test_on_post_create_fail(self, bodyMock, cciManagerMock):
-        e = SoftLayerAPIError(123, 'abc')
+        e = SoftLayer.SoftLayerAPIError(123, 'abc')
         self.vg_clientMock.createArchiveTransaction.side_effect = e
         bodyMock.return_value = {'createImage': {'name': 'foobar'}}
         instance = ServerActionV2(MagicMock())
         instance.on_post(self.req, self.resp, TENANT_ID, INSTANCE_ID)
-        self.assertRaises(SoftLayerAPIError,
+        self.assertRaises(SoftLayer.SoftLayerAPIError,
                           self.vg_clientMock.createArchiveTransaction)
         self.assertEquals(self.resp.status, 500)
 
@@ -149,7 +151,7 @@ class TestServersServersDetailV2(unittest.TestCase):
     def test_init(self):
         self.assertEquals(self.app, self.instance.app)
 
-    @patch('jumpgate.compute.drivers.sl.servers.CCIManager.list_instances')
+    @patch('SoftLayer.CCIManager.list_instances')
     def test_on_get(self, mockListInstance):
         href = u'http://localhost:5000/compute/v2/333582/servers/4846014'
         dict = {'status': 'ACTIVE',
