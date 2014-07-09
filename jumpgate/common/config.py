@@ -1,6 +1,13 @@
 from oslo.config import cfg
 import SoftLayer
 
+VOLUME_TYPE_1 = ('{"id": "241", "name": "san", "extra_specs": {'
+                 '"capabilities:volume_backend_name": "sjc01",'
+                 ' "drivers:display_name": "default", '
+                 '"drivers:san_backed_disk"'
+                 ': true, "drivers:exact_capacity": false}}')
+VOLUME_TYPE_LIST = ('{"volume_types": [' + VOLUME_TYPE_1 + ']}')
+
 FILE_OPTIONS = {
     None: [
         cfg.ListOpt('enabled_services', default=['identity',
@@ -60,6 +67,7 @@ FILE_OPTIONS = {
         cfg.StrOpt('mount', default='/volume'),
         cfg.StrOpt('default_availability_zone', default=None),
         cfg.StrOpt('volume_name_prefix', default='jumpgate-san-'),
+        cfg.StrOpt('volume_types', default=VOLUME_TYPE_LIST),
     ],
     'network': [
         cfg.StrOpt('driver', default='jumpgate.network.drivers.sl'),

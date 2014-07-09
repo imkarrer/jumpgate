@@ -12,5 +12,6 @@ def setup_routes(app, disp):
     disp.set_handler('v1_volumes_detail', volumes.VolumesV1())
     disp.set_handler('v1_volume', volumes.VolumeV1())
     disp.set_handler('v1_volumes', volumes.VolumesV1())
+    disp.set_handler('v1_volume_types', volumes.VolumeTypesV1())
 
     sl_common.add_hooks(app)
