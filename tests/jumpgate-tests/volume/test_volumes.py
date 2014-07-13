@@ -111,9 +111,8 @@ class TestVolumeTypesLoader(unittest.TestCase):
     def test_init_json_error(self, logMock):
         bad_json_str = '['
         self.vtl, volume_types = _set_up_vol_types_vtl(bad_json_str)
-        logMock.assert_called_with('JSON FORMATTING ERROR in jumpgate.conf'
-                                   ' or config.py!\nError: Expecting object:'
-                                   ' line 1 column 1 (char 0)')
+        logMock.assert_called_with('JSON FORMATTING ERROR in'
+                                   ' jumpgate.conf or config.py!')
         self.assertEquals(volume_types,
                           {'volume_types': []})
 

@@ -41,9 +41,8 @@ class VolumeTypesLoader(object):
             id_cache = set()
             for v_type in self.__class__._volume_types['volume_types']:
                 self._validate_volume_type(v_type, id_cache)
-        except (ValueError, TypeError) as e:
-            LOG.error('JSON FORMATTING ERROR in jumpgate.conf or config.py!\n'
-                      'Error: ' + str(e))
+        except (ValueError, TypeError):
+            LOG.error('JSON FORMATTING ERROR in jumpgate.conf or config.py!')
             self.__class__._json_format_error = True
             pass
         except LookupError as e:
